@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: example-inference-queue-scaler
+spec:
+  scaleTargetRef:
+    name: example-shared-inference
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  cooldownPeriod: 300
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://REPLACE_ME_PROMETHEUS_ENDPOINT
+        metricName: inference_waiting_requests
+        query: sum(inference_waiting_requests{service="example-shared-inference"})
+        threshold: "4"

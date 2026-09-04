@@ -1,0 +1,28 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu-shared
+spec:
+  template:
+    metadata:
+      labels:
+        workload.example.com/gpu-pool: shared
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: REPLACE_ME_GPU_NODE_CLASS
+      taints:
+        - key: nvidia.com/gpu
+          value: "true"
+          effect: NoSchedule
+      requirements:
+        - key: karpenter.k8s.aws/instance-gpu-manufacturer
+          operator: In
+          values: ["nvidia"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 10m

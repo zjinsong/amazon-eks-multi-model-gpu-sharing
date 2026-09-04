@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-shared-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-shared-inference
+  template:
+    metadata:
+      labels:
+        app: example-shared-inference
+    spec:
+      priorityClassName: inference-normal
+      nodeSelector:
+        workload.example.com/gpu-pool: shared
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: inference
+          image: REPLACE_ME_WITH_AN_IMMUTABLE_ECR_DIGEST
+          args:
+            - --gpu-memory-utilization=0.40
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          ports:
+            - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-shared-inference
+spec:
+  selector:
+    app: example-shared-inference
+  ports:
+    - port: 80
+      targetPort: 8000

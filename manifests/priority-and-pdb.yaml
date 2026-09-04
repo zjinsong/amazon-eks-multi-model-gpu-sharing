@@ -1,0 +1,25 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: inference-critical
+value: 100000
+globalDefault: false
+description: Critical inference workloads that should use dedicated capacity.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: inference-normal
+value: 10000
+globalDefault: false
+description: Shared-pool inference workloads.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: example-inference-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: example-shared-inference
