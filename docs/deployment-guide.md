@@ -18,7 +18,7 @@
 
 - 已有 Amazon EKS 集群和 `kubectl` 访问权限；
 - 已安装 Helm 3；
-- 至少一台使用 EKS GPU 优化 AMI 的 G5 节点，或已安装 Karpenter；
+- 至少一台使用 EKS-optimized AL2023 NVIDIA AMI 的 G5 节点，或已安装 Karpenter；
 - 推理镜像已推送到 Amazon ECR，并能在端口 8000 提供 `/health`；
 - 模型权重、启动参数和 ECR Digest 已确定；
 - 如启用弹性，集群中已有 Prometheus 指标源。
@@ -73,6 +73,8 @@ helm repo update
 helm upgrade --install gpu-operator nvidia/gpu-operator \
   --namespace gpu-operator \
   --create-namespace \
+  --set driver.enabled=false \
+  --set toolkit.enabled=false \
   --wait
 
 kubectl get pods -n gpu-operator
@@ -80,6 +82,8 @@ kubectl get clusterpolicy
 ```
 
 所有必需 Pod 应进入 `Running` 或 `Completed`，再继续启用 Time-Slicing。
+
+EKS-optimized AL2023 NVIDIA AMI 已包含 NVIDIA 驱动和 Container Toolkit，因此这里必须关闭 Operator 对这两个组件的安装，避免重复管理。本文不以 Bottlerocket 为部署基线；Bottlerocket NVIDIA AMI 已包含 Device Plugin，配置方法需按其 AMI 和 EKS 版本单独验证。
 
 ## 6. 启用 Time-Slicing
 
