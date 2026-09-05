@@ -6,9 +6,11 @@
 
 > 核心原则：Time-Slicing 不是“免费扩容”。它增加的是调度密度，不增加 GPU 物理算力，也不提供显存隔离。
 
+> **本方案的 GPU 与方式**：压测和实施示例使用 EC2 G5 的 NVIDIA A10G，采用 **Time-Slicing**；A10G 不支持 MIG，本方案也没有使用 MIG。MIG 是仅适用于部分其他 GPU 的硬件分区能力，不能当作本方案的隔离能力。
+
 ## 适用场景
 
-| 优先评估共享池 | 优先使用独占 GPU / MIG |
+| 优先评估共享池 | 优先使用独占 GPU |
 |---|---|
 | 中小模型、低频、间歇或流量错峰 | 长期高并发、GPU 持续高利用率 |
 | 可接受一定延迟波动 | TTFT、P95/P99 要求严格 |
@@ -18,7 +20,7 @@
 ## 方案用途与收益
 
 - 将多个低频模型放入共享 GPU 池，减少“一模型一卡”造成的空闲；
-- 按业务 SLO 把关键模型保留在 Dedicated 或 MIG 池；
+- 按业务 SLO 把关键模型保留在独占 GPU 池；
 - 用显存预算和真实流量决定哪些模型可以配对共享；
 - 用 Queue、TTFT、P95/P99 和 KV Cache 压力驱动 Pod 扩容；
 - Pod Pending 时由 Karpenter 增加 GPU 节点；
@@ -40,7 +42,7 @@ Web / Mobile / Internal / Batch Clients
        按优先级、SLO、容量路由
           ┌───────┴────────┐
           ▼                ▼
- Shared GPU Pool      Dedicated / MIG Pool
+ Shared GPU Pool      Dedicated GPU Pool
  NVIDIA Time-Slicing  严格 SLO / 强隔离模型
  低频、可降级模型      高优先级、长上下文模型
 
@@ -51,7 +53,7 @@ S3 / Mountpoint / FSx：模型权重与缓存
 DCGM Exporter + Prometheus/Grafana + CloudWatch：观测与告警
 ```
 
-## Time-Slicing 的技术边界
+## Time-Slicing 的技术边界（也是本方案的适用条件）
 
 配置 `replicas: 2` 后，一张物理 GPU 会向 Kubernetes 报告两个 `nvidia.com/gpu` 可调度副本，使两个各申请一个 GPU 的 Pod 能被调度到同一张卡。
 
@@ -108,7 +110,7 @@ DCGM Exporter + Prometheus/Grafana + CloudWatch：观测与告警
 ### 3. 建立共享和独占 GPU 池
 
 - 共享池：低频、可降级、可容忍延迟抖动的模型；
-- 独占/MIG 池：严格 SLO、长上下文、高优先级或强隔离模型；
+- 独占 GPU 池：严格 SLO、长上下文、高优先级或强隔离模型；
 - 使用 Node Label、Taint/Toleration 和 Node Affinity 防止混调；
 - 关键副本跨物理节点分布，避免单卡故障同时影响所有副本。
 
@@ -176,7 +178,7 @@ kubectl apply -f manifests/karpenter-nodepool.yaml
 - 峰值显存仍保留安全余量，无不可接受 OOM；
 - 扩容能在业务等待预算内完成；
 - 单位 Token 成本或 GPU 空闲率达到预期改善；
-- 已验证回退到 Dedicated/MIG 的路径。
+- 已验证回退到独占 GPU 池的路径。
 
 ## 最小观测指标
 
