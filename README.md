@@ -8,6 +8,11 @@
 
 > **本方案的 GPU 与方式**：压测和实施示例使用 EC2 G5 的 NVIDIA A10G，采用 **Time-Slicing**；A10G 不支持 MIG，本方案也没有使用 MIG。MIG 是仅适用于部分其他 GPU 的硬件分区能力，不能当作本方案的隔离能力。
 
+## 部署文档
+
+- [端到端部署指南](docs/deployment-guide.md)：GPU 节点、GPU Operator、Time-Slicing、vLLM、KEDA、Karpenter、Model Router、验证和清理
+- [生产检查清单](docs/production-checklist.md)
+
 ## 适用场景
 
 | 优先评估共享池 | 优先使用独占 GPU |
